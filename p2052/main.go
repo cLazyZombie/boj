@@ -29,7 +29,7 @@ func main() {
 const LIMIT_VALUE = 100000000
 
 func Pow5(n int) []int {
-	result := make([]int, 1, n)
+	result := make([]int, 1, n/8+1)
 	result[0] = 5
 
 	for i := 1; i < n; i++ {
