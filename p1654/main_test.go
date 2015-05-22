@@ -12,5 +12,6 @@ func TestSolve(t *testing.T) {
 		So(Solve([]int{100}, 10), ShouldEqual, 10)
 
 		So(Solve([]int{100}, 10), ShouldEqual, 10)
+		So(Solve([]int{100}, 10), ShouldEqual, 10)
 	})
 }
