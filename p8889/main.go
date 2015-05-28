@@ -69,6 +69,8 @@ func NewPolygon(points ...Point) *Polygon {
 		}
 	}
 
+	poly.Min, poly.Max = min, max
+
 	// 세로부터 시작하게 순서 수정
 	if poly.Points[0].X != poly.Points[1].X {
 		poly.Points = append(poly.Points, poly.Points[0])[1:]
@@ -87,36 +89,20 @@ func (poly *Polygon) CanContain(other *Polygon) bool {
 	}
 
 	// boundary check
-	mx1 := Max(poly.Min.X, other.Min.X)
-	mx2 := Min(poly.Max.X, other.Max.X)
-
-	if mx1 > mx2 {
+	if !IsOverlapped(poly.Min.X, poly.Max.X, other.Min.X, other.Max.X) {
 		return false
 	}
 
-	my1 := Max(poly.Min.Y, other.Min.Y)
-	my2 := Min(poly.Max.Y, other.Max.Y)
-
-	if my1 > my2 {
+	if !IsOverlapped(poly.Min.Y, poly.Max.Y, other.Min.Y, other.Max.Y) {
 		return false
 	}
 
 	// real check
-	for i, _ := range other.Points {
-		next := i + 1
-		if next == len(other.Points) {
-			next = 0
-		}
+	for i := 0; i < len(other.Points); i += 2 {
+		next := (i + 1) % len(other.Points)
 
-		// vertical line
-		if i%2 == 0 {
-			if !poly.CheckHorizon(other.Points[i], other.Points[next]) {
-				return false
-			}
-		} else {
-			if !poly.CheckVertical(other.Points[i], other.Points[next]) {
-				return false
-			}
+		if !poly.CheckVertical(other.Points[i], other.Points[next]) {
+			return false
 		}
 	}
 
@@ -124,81 +110,38 @@ func (poly *Polygon) CanContain(other *Polygon) bool {
 }
 
 func (poly *Polygon) CheckVertical(p1, p2 Point) bool {
-	start := 2000000000
-	end := 0
-
-	count := 0
+	var overlapLeft, overlapRight bool
 
 	for i := 0; i < len(poly.Points); i += 2 {
-		next := i + 1
-		if next == len(poly.Points) {
-			next = 0
-		}
+		next := (i + 1) % len(poly.Points)
 
-		yStart, yEnd := MinMax(poly.Points[i].Y, poly.Points[next].Y)
-		if p1.Y < yStart || p1.Y > yEnd {
-			continue
-		}
+		if poly.Points[i].X < p1.X {
+			if !overlapLeft && IsOverlapped(p1.Y, p2.Y, poly.Points[i].Y, poly.Points[next].Y) {
+				if overlapRight {
+					return true
+				}
 
-		start = Min(poly.Points[i].X, start)
-		end = Max(poly.Points[i].X, end)
-		count++
+				overlapLeft = true
+			}
+		} else if poly.Points[i].X > p1.X {
+			if !overlapRight && IsOverlapped(p1.Y, p2.Y, poly.Points[i].Y, poly.Points[next].Y) {
+				if overlapLeft {
+					return true
+				}
 
-		if count >= 2 {
-			break
+				overlapRight = true
+			}
 		}
 	}
 
-	if start > end {
-		return false
-	}
-
-	pStart, pEnd := MinMax(p1.X, p2.X)
-
-	if Max(start, pStart) >= Min(end, pEnd) {
-		return false
-	}
-
-	return true
+	return false
 }
 
-func (poly *Polygon) CheckHorizon(p1, p2 Point) bool {
-	start := 2000000000
-	end := 0
+func IsOverlapped(p1, p2, p3, p4 int) bool {
+	start1, end1 := MinMax(p1, p2)
+	start2, end2 := MinMax(p3, p4)
 
-	count := 0
-
-	for i := 1; i < len(poly.Points); i += 2 {
-		next := i + 1
-		if next == len(poly.Points) {
-			next = 0
-		}
-
-		xStart, xEnd := MinMax(poly.Points[i].X, poly.Points[next].X)
-		if p1.X < xStart || p1.X > xEnd {
-			continue
-		}
-
-		start = Min(poly.Points[i].Y, start)
-		end = Max(poly.Points[i].Y, end)
-		count++
-
-		if count >= 2 {
-			break
-		}
-	}
-
-	if start > end {
-		return false
-	}
-
-	pStart, pEnd := MinMax(p1.Y, p2.Y)
-
-	if Max(start, pStart) >= Min(end, pEnd) {
-		return false
-	}
-
-	return true
+	return Max(start1, start2) < Min(end1, end2)
 }
 
 func Min(a, b int) int {
